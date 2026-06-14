@@ -8,14 +8,26 @@ log() { printf '{"time":"%s","level":"%s","msg":"%s"}\n' "$(date -u +%FT%TZ)" "$
 
 log "info" "Initializing immich-backup"
 
-# Validate required environment
-for var in AZURE_ACCOUNT_NAME AZURE_ACCOUNT_KEY RESTIC_REPOSITORY RESTIC_PASSWORD PGHOST PGUSER PGPASSWORD PGDATABASE; do
+# Validate required environment. Azure + restic are always required.
+for var in AZURE_ACCOUNT_NAME AZURE_ACCOUNT_KEY RESTIC_REPOSITORY RESTIC_PASSWORD; do
     eval val="\$$var"
     if [ -z "$val" ]; then
         log "error" "Required environment variable $var is not set"
         exit 1
     fi
 done
+
+# PostgreSQL credentials are required only when a database host is configured.
+# Files-only instances leave PGHOST unset and skip the DB dump entirely.
+if [ -n "${PGHOST:-}" ]; then
+    for var in PGUSER PGPASSWORD PGDATABASE; do
+        eval val="\$$var"
+        if [ -z "$val" ]; then
+            log "error" "Required environment variable $var is not set"
+            exit 1
+        fi
+    done
+fi
 
 # Initialize restic repo if it doesn't exist
 if ! restic snapshots --no-lock >/dev/null 2>&1; then

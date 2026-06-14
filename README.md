@@ -1,18 +1,18 @@
 # immich-backup
 
-Encrypted backup sidecar for [Immich](https://immich.app) — dumps PostgreSQL and backs up photo originals to Azure Blob Storage via [restic](https://restic.net).
+Encrypted backup sidecar — backs up files (and optionally a PostgreSQL dump) to Azure Blob Storage via [restic](https://restic.net). Ships with [Immich](https://immich.app) defaults out of the box, but generalizes to any file-set: point `BACKUP_PATHS` at the directories you want and leave `PGHOST` unset to run a files-only instance.
 
 ## What It Does
 
-- **pg_dump** the Immich database every 6 hours
-- **restic backup** the DB dump + photo originals to Azure Blob Storage
+- **pg_dump** the database every cycle — skipped entirely when `PGHOST` is unset
+- **restic backup** the DB dump (if any) + the configured source paths to Azure Blob Storage
 - **Prune** old snapshots weekly (7 daily, 4 weekly, 6 monthly)
 - **Discord** notifications on success/failure
 - **Health endpoint** at `/cgi-bin/health` for orchestrator checks
 
 ## What It Doesn't Back Up
 
-Thumbnails and transcoded previews are regenerable from originals and are excluded to save storage costs.
+`BACKUP_EXCLUDES` is a space-separated list of restic patterns to skip. The Immich default (`thumbs/** encoded-video/**`) drops regenerable thumbnails and transcoded previews to save storage. Set it to an empty string to exclude nothing.
 
 ## Environment Variables
 
@@ -22,11 +22,15 @@ Thumbnails and transcoded previews are regenerable from originals and are exclud
 | `AZURE_ACCOUNT_KEY` | Yes | Azure Storage account key |
 | `RESTIC_REPOSITORY` | Yes | Restic repo URI (e.g., `azure:immich-backup:/backup`) |
 | `RESTIC_PASSWORD` | Yes | Restic encryption password |
-| `PGHOST` | Yes | PostgreSQL hostname |
+| `BACKUP_PATHS` | No | Space-separated source paths (default: `/photos`) |
+| `BACKUP_EXCLUDES` | No | Space-separated restic exclude patterns (default: `thumbs/** encoded-video/**`; empty = none) |
+| `BACKUP_NAME` | No | Label used in logs and Discord notifications (default: `Immich`) |
+| `BACKUP_TAG` | No | restic snapshot tag, also used for prune retention (default: `immich`) |
+| `PGHOST` | If DB | PostgreSQL hostname — set to enable the DB dump; unset for files-only |
 | `PGPORT` | No | PostgreSQL port (default: `5432`) |
-| `PGUSER` | Yes | PostgreSQL username |
-| `PGPASSWORD` | Yes | PostgreSQL password |
-| `PGDATABASE` | Yes | PostgreSQL database name |
+| `PGUSER` | If DB | PostgreSQL username (required when `PGHOST` is set) |
+| `PGPASSWORD` | If DB | PostgreSQL password (required when `PGHOST` is set) |
+| `PGDATABASE` | If DB | PostgreSQL database name (required when `PGHOST` is set) |
 | `DISCORD_WEBHOOK_URL` | No | Discord webhook for notifications |
 | `BACKUP_CRON` | No | Cron schedule (default: `0 */6 * * *`) |
 | `TZ` | No | Timezone (default: `UTC`) |
@@ -35,7 +39,7 @@ Thumbnails and transcoded previews are regenerable from originals and are exclud
 
 | Mount | Description |
 |-------|-------------|
-| `/photos` | Immich photo library (mount as read-only) |
+| `/photos` | Immich photo library (default `BACKUP_PATHS`; mount as read-only). Files-only instances mount their own source paths instead. |
 | `/data` | Working directory for DB dumps and state |
 
 ## Verification
