@@ -8,7 +8,8 @@ log() { printf '{"time":"%s","level":"%s","msg":"%s"}\n' "$(date -u +%FT%TZ)" "$
 BACKUP_NAME="${BACKUP_NAME:-Immich}"
 BACKUP_TAG="${BACKUP_TAG:-immich}"
 BACKUP_PATHS="${BACKUP_PATHS:-/photos}"
-BACKUP_EXCLUDES="${BACKUP_EXCLUDES:-thumbs/** encoded-video/**}"
+# No colon: unset -> Immich default; explicit empty string -> no excludes.
+BACKUP_EXCLUDES="${BACKUP_EXCLUDES-thumbs/** encoded-video/**}"
 
 DUMP_FILE="/data/immich.sql"
 START_TIME=$(date +%s)
