@@ -32,6 +32,7 @@ Encrypted backup sidecar — backs up files (and optionally a PostgreSQL dump) t
 | `PGPASSWORD` | If DB | PostgreSQL password (required when `PGHOST` is set) |
 | `PGDATABASE` | If DB | PostgreSQL database name (required when `PGHOST` is set) |
 | `DISCORD_WEBHOOK_URL` | No | Discord webhook for notifications |
+| `DISCORD_NOTIFY_ON_SUCCESS` | No | Post on successful backups (default: `true`). Set `false` to alert on failure only — pair with a staleness monitor so a silent job still surfaces |
 | `BACKUP_CRON` | No | Cron schedule (default: `0 */6 * * *`) |
 | `TZ` | No | Timezone (default: `UTC`) |
 
