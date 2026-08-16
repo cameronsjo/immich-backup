@@ -71,8 +71,9 @@ if RESTIC_OUTPUT=$(restic backup \
     # Update last-backup marker
     date -u +%FT%TZ > /data/last-backup
 
-    # Discord success notification
-    if [ -n "${DISCORD_WEBHOOK_URL:-}" ]; then
+    # Discord success notification — suppressed when DISCORD_NOTIFY_ON_SUCCESS=false.
+    # Failure notifications below are never suppressed.
+    if [ -n "${DISCORD_WEBHOOK_URL:-}" ] && [ "${DISCORD_NOTIFY_ON_SUCCESS:-true}" != "false" ]; then
         # Only include the DB-dump field when a dump actually ran
         DB_DUMP_FIELD=""
         if [ -n "$DUMP_SIZE" ]; then
