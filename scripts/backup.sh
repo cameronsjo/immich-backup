@@ -65,11 +65,11 @@ if RESTIC_OUTPUT=$(restic backup \
         else printf "%d B", $1
     }')
 
-    DURATION=$(( $(date +%s) - START_TIME ))
+    DURATION=$(($(date +%s) - START_TIME))
     log "info" "Restic backup complete. Snapshot: $SNAPSHOT_ID. New: $FILES_NEW. Changed: $FILES_CHANGED. Added: $DATA_ADDED_HR. Duration: ${DURATION}s"
 
     # Update last-backup marker
-    date -u +%FT%TZ > /data/last-backup
+    date -u +%FT%TZ >/data/last-backup
 
     # Discord success notification — suppressed when DISCORD_NOTIFY_ON_SUCCESS=false.
     # Failure notifications below are never suppressed.
