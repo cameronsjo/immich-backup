@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+readonly IMAGE="${IMAGE:-immich-backup:test-health-reaping}"
+readonly CONTAINER="immich-backup-health-reaping-$$"
+DATA_DIR="$(mktemp -d)"
+readonly DATA_DIR
+
+cleanup() {
+    if docker container inspect "$CONTAINER" >/dev/null 2>&1; then
+        docker rm -f "$CONTAINER" >/dev/null
+    fi
+    rm -rf "$DATA_DIR"
+}
+trap cleanup EXIT
+
+touch "$DATA_DIR/last-backup"
+docker build -t "$IMAGE" .
+docker run --detach --name "$CONTAINER" \
+    --env AZURE_ACCOUNT_NAME=test-account \
+    --env AZURE_ACCOUNT_KEY=test-key \
+    --env RESTIC_REPOSITORY=/data/restic-repository \
+    --env RESTIC_PASSWORD=test-password \
+    --volume "$DATA_DIR:/data" \
+    "$IMAGE" >/dev/null
+
+ready=false
+for _ in {1..30}; do
+    if docker exec "$CONTAINER" wget -q -O /dev/null http://127.0.0.1:8080/cgi-bin/health; then
+        ready=true
+        break
+    fi
+    sleep 1
+done
+if [[ "$ready" != true ]]; then
+    docker logs "$CONTAINER"
+    echo "Health endpoint did not become ready" >&2
+    exit 1
+fi
+
+for _ in {1..100}; do
+    docker exec "$CONTAINER" wget -q -O /dev/null http://127.0.0.1:8080/cgi-bin/health
+done
+sleep 1
+
+pid_one="$(docker exec "$CONTAINER" cat /proc/1/comm)"
+if [[ "$pid_one" != tini ]]; then
+    echo "Expected tini as PID 1, got: $pid_one" >&2
+    exit 1
+fi
+
+zombie_count="$(docker exec "$CONTAINER" sh -c '
+count=0
+for stat in /proc/[0-9]*/stat; do
+    state=$(awk "{print \$3}" "$stat")
+    if [ "$state" = Z ]; then
+        count=$((count + 1))
+    fi
+done
+printf "%s\n" "$count"
+')"
+if [[ ! "$zombie_count" =~ ^[0-9]+$ ]]; then
+    echo "Expected a numeric zombie count, got: $zombie_count" >&2
+    exit 1
+fi
+if ((zombie_count != 0)); then
+    echo "Expected no zombie processes after health probes, found: $zombie_count" >&2
+    exit 1
+fi
+
+printf 'Health reaping test passed: PID 1=%s, zombies=%s\n' "$pid_one" "$zombie_count"

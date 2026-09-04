@@ -3,7 +3,7 @@ name: Build and Push
 on:
   push:
     branches: [main]
-    tags: ['v*']
+    tags: ["v*"]
   pull_request:
     branches: [main]
 
@@ -23,6 +23,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Verify health process reaping
+        run: make test-reaping
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3

@@ -1,5 +1,5 @@
 ---
-status: in-progress
+status: done
 issue: https://github.com/cameronsjo/immich-backup/issues/1
 ---
 
@@ -20,7 +20,7 @@ Install Alpine's `tini` package and make `tini` PID 1, with the existing entrypo
 
 ## Checklist
 
-- [ ] Add `tini` to the runtime image and put it at the entrypoint boundary.
-- [ ] Add a container-level regression test that probes health repeatedly and fails if zombie children accumulate.
-- [ ] Run the shell and container verification gates.
-- [ ] Update the changelog and close issue #1 through the pull request.
+- [x] Add `tini` to the runtime image and put it at the entrypoint boundary.
+- [x] Add a container-level regression test that probes health repeatedly and fails if zombie children accumulate.
+- [x] Run the shell and container verification gates.
+- [x] Update the changelog and close issue #1 through the pull request.
