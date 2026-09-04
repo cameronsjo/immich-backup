@@ -41,7 +41,14 @@ fi
 for _ in {1..100}; do
     docker exec "$CONTAINER" wget -q -O /dev/null http://127.0.0.1:8080/cgi-bin/health
 done
-sleep 1
+
+readonly LOG_PROBE="health-reaping-log-probe"
+docker exec "$CONTAINER" sh -c 'printf "%s\n" "$1" >/proc/1/fd/1' sh "$LOG_PROBE"
+container_logs="$(docker logs "$CONTAINER" 2>&1)"
+if [[ "$container_logs" != *"$LOG_PROBE"* ]]; then
+    echo "Expected /proc/1/fd/1 output to reach container logs" >&2
+    exit 1
+fi
 
 pid_one="$(docker exec "$CONTAINER" cat /proc/1/comm)"
 if [[ "$pid_one" != tini ]]; then
@@ -49,7 +56,9 @@ if [[ "$pid_one" != tini ]]; then
     exit 1
 fi
 
-zombie_count="$(docker exec "$CONTAINER" sh -c '
+zombie_count=unknown
+for _ in {1..50}; do
+    zombie_count="$(docker exec "$CONTAINER" sh -c '
 count=0
 for stat in /proc/[0-9]*/stat; do
     state=$(awk "{print \$3}" "$stat")
@@ -59,10 +68,15 @@ for stat in /proc/[0-9]*/stat; do
 done
 printf "%s\n" "$count"
 ')"
-if [[ ! "$zombie_count" =~ ^[0-9]+$ ]]; then
-    echo "Expected a numeric zombie count, got: $zombie_count" >&2
-    exit 1
-fi
+    if [[ ! "$zombie_count" =~ ^[0-9]+$ ]]; then
+        echo "Expected a numeric zombie count, got: $zombie_count" >&2
+        exit 1
+    fi
+    if ((zombie_count == 0)); then
+        break
+    fi
+    sleep 0.1
+done
 if ((zombie_count != 0)); then
     echo "Expected no zombie processes after health probes, found: $zombie_count" >&2
     exit 1
