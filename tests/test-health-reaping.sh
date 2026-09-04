@@ -3,25 +3,28 @@ set -euo pipefail
 
 readonly IMAGE="${IMAGE:-immich-backup:test-health-reaping}"
 readonly CONTAINER="immich-backup-health-reaping-$$"
-DATA_DIR="$(mktemp -d)"
-readonly DATA_DIR
+readonly DATA_VOLUME="immich-backup-health-reaping-$$"
 
 cleanup() {
     if docker container inspect "$CONTAINER" >/dev/null 2>&1; then
         docker rm -f "$CONTAINER" >/dev/null
     fi
-    rm -rf "$DATA_DIR"
+    if docker volume inspect "$DATA_VOLUME" >/dev/null 2>&1; then
+        docker volume rm "$DATA_VOLUME" >/dev/null
+    fi
 }
 trap cleanup EXIT
 
-touch "$DATA_DIR/last-backup"
+docker volume create "$DATA_VOLUME" >/dev/null
+docker run --rm --volume "$DATA_VOLUME:/data" alpine:3.21 \
+    touch /data/last-backup
 docker build -t "$IMAGE" .
 docker run --detach --name "$CONTAINER" \
     --env AZURE_ACCOUNT_NAME=test-account \
     --env AZURE_ACCOUNT_KEY=test-key \
     --env RESTIC_REPOSITORY=/data/restic-repository \
     --env RESTIC_PASSWORD=test-password \
-    --volume "$DATA_DIR:/data" \
+    --volume "$DATA_VOLUME:/data" \
     "$IMAGE" >/dev/null
 
 ready=false
