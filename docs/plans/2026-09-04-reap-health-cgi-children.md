@@ -1,5 +1,5 @@
 ---
-status: done
+status: awaiting-merge
 issue: https://github.com/cameronsjo/immich-backup/issues/1
 ---
 
@@ -23,4 +23,9 @@ Install Alpine's `tini` package and make `tini` PID 1, with the existing entrypo
 - [x] Add `tini` to the runtime image and put it at the entrypoint boundary.
 - [x] Add a container-level regression test that probes health repeatedly and fails if zombie children accumulate.
 - [x] Run the shell and container verification gates.
-- [x] Update the changelog and close issue #1 through the pull request.
+- [x] Update the changelog.
+- [ ] Merge pull request #5; issue #1 closes automatically.
+
+## Next step
+
+Merge [pull request #5](https://github.com/cameronsjo/immich-backup/pull/5), publish the main-branch image, recreate the deployed container, and confirm repeated health probes leave no zombies.
