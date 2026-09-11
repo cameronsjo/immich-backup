@@ -49,6 +49,8 @@ done
 # Step 2: Restic backup (DB dump when present + configured source paths)
 log "info" "Starting restic backup of: $SOURCES"
 # shellcheck disable=SC2086  # intentional word-split of $SOURCES / $EXCLUDE_ARGS
+# — DATA_DIR, DUMP_FILE, and BACKUP_PATHS are fixed container-internal paths
+# with no spaces; this breaks if any of them is ever set to a path containing one
 if RESTIC_OUTPUT=$(restic backup \
     $SOURCES \
     $EXCLUDE_ARGS \
