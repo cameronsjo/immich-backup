@@ -3,6 +3,7 @@ set -eu
 
 BACKUP_CRON="${BACKUP_CRON:-0 */6 * * *}"
 HEALTH_PORT="${HEALTH_PORT:-8080}"
+DATA_DIR="${DATA_DIR:-/data}"
 
 log() { printf '{"time":"%s","level":"%s","msg":"%s"}\n' "$(date -u +%FT%TZ)" "$1" "$2"; }
 
@@ -39,7 +40,7 @@ else
 fi
 
 # Ensure data directory exists
-mkdir -p /data
+mkdir -p "$DATA_DIR"
 
 # Write crontab
 cat > /tmp/crontab <<CRON
@@ -51,8 +52,8 @@ rm /tmp/crontab
 log "info" "Crontab installed. Backup: ${BACKUP_CRON}. Prune: weekly Sunday 03:00"
 
 # Set up health endpoint
-mkdir -p /data/cgi-bin
-cat > /data/cgi-bin/health <<'HEALTH'
+mkdir -p "$DATA_DIR/cgi-bin"
+cat > "$DATA_DIR/cgi-bin/health" <<'HEALTH'
 #!/bin/sh
 LAST_BACKUP="/data/last-backup"
 if [ -f "$LAST_BACKUP" ]; then
@@ -71,14 +72,17 @@ else
     printf '{"status":"healthy","last_backup":"never"}\n'
 fi
 HEALTH
-chmod +x /data/cgi-bin/health
+# The health script is a quoted heredoc (no runtime interpolation), so bake
+# in the actual data directory now that it's been written.
+sed -i "s#/data/last-backup#${DATA_DIR}/last-backup#" "$DATA_DIR/cgi-bin/health"
+chmod +x "$DATA_DIR/cgi-bin/health"
 
 # Start health endpoint in background
-httpd -f -p "$HEALTH_PORT" -h /data &
+httpd -f -p "$HEALTH_PORT" -h "$DATA_DIR" &
 log "info" "Health endpoint listening on port $HEALTH_PORT"
 
 # Run initial backup on first start if no previous backup exists
-if [ ! -f /data/last-backup ]; then
+if [ ! -f "$DATA_DIR/last-backup" ]; then
     log "info" "No previous backup found. Running initial backup"
     /scripts/backup.sh || log "warn" "Initial backup failed — will retry on next cron cycle"
 fi

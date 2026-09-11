@@ -18,8 +18,9 @@ run: ## Run container (requires .env file)
 	docker run --rm --env-file .env -v /tmp/immich-backup-test:/data $(IMAGE):$(TAG)
 
 ## Lint shell scripts
-test: ## Check scripts with shellcheck
-	shellcheck scripts/*.sh
+test: ## Run shell regression tests and lint scripts
+	./tests/backup.sh
+	shellcheck scripts/*.sh tests/*.sh
 
 ## Verify repeated health probes do not leave zombie CGI children
 test-reaping:
