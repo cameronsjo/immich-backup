@@ -18,8 +18,9 @@ run: ## Run container (requires .env file)
 	docker run --rm --env-file .env -v /tmp/immich-backup-test:/data $(IMAGE):$(TAG)
 
 ## Lint shell scripts
-test: ## Check scripts with shellcheck
-	shellcheck scripts/*.sh
+test: ## Run shell regression tests and lint scripts
+	./tests/backup.sh
+	shellcheck scripts/*.sh tests/*.sh
 
 ## Remove built image
 clean: ## Remove Docker image

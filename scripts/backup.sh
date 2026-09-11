@@ -11,7 +11,8 @@ BACKUP_PATHS="${BACKUP_PATHS:-/photos}"
 # No colon: unset -> Immich default; explicit empty string -> no excludes.
 BACKUP_EXCLUDES="${BACKUP_EXCLUDES-thumbs/** encoded-video/**}"
 
-DUMP_FILE="/data/immich.sql"
+DATA_DIR="${DATA_DIR:-/data}"
+DUMP_FILE="$DATA_DIR/immich.sql"
 START_TIME=$(date +%s)
 
 log "info" "Starting $BACKUP_NAME backup"
@@ -48,13 +49,15 @@ done
 # Step 2: Restic backup (DB dump when present + configured source paths)
 log "info" "Starting restic backup of: $SOURCES"
 # shellcheck disable=SC2086  # intentional word-split of $SOURCES / $EXCLUDE_ARGS
+# — DATA_DIR, DUMP_FILE, and BACKUP_PATHS are fixed container-internal paths
+# with no spaces; this breaks if any of them is ever set to a path containing one
 if RESTIC_OUTPUT=$(restic backup \
     $SOURCES \
     $EXCLUDE_ARGS \
     --tag "$BACKUP_TAG" \
     --tag "$(date -u +%F)" \
     --json 2>&1 | tail -1); then
-    SNAPSHOT_ID=$(echo "$RESTIC_OUTPUT" | jq -r '.snapshot_short_id // "unknown"')
+    SNAPSHOT_ID=$(printf '%s\n' "$RESTIC_OUTPUT" | jq -r '.snapshot_id // "unknown"' | cut -c1-8)
     FILES_NEW=$(echo "$RESTIC_OUTPUT" | jq -r '.files_new // 0')
     FILES_CHANGED=$(echo "$RESTIC_OUTPUT" | jq -r '.files_changed // 0')
     DATA_ADDED=$(echo "$RESTIC_OUTPUT" | jq -r '.data_added // 0')
@@ -65,11 +68,11 @@ if RESTIC_OUTPUT=$(restic backup \
         else printf "%d B", $1
     }')
 
-    DURATION=$(( $(date +%s) - START_TIME ))
+    DURATION=$(($(date +%s) - START_TIME))
     log "info" "Restic backup complete. Snapshot: $SNAPSHOT_ID. New: $FILES_NEW. Changed: $FILES_CHANGED. Added: $DATA_ADDED_HR. Duration: ${DURATION}s"
 
     # Update last-backup marker
-    date -u +%FT%TZ > /data/last-backup
+    date -u +%FT%TZ >"$DATA_DIR/last-backup"
 
     # Discord success notification — suppressed when DISCORD_NOTIFY_ON_SUCCESS=false.
     # Failure notifications below are never suppressed.
