@@ -9,7 +9,8 @@ RUN apk add --no-cache \
     postgresql16-client \
     curl \
     jq \
-    busybox-extras
+    busybox-extras \
+    tini
 
 COPY scripts/ /scripts/
 RUN chmod +x /scripts/*.sh
@@ -22,4 +23,4 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 --start-period=120s \
     CMD wget -q --spider http://127.0.0.1:8080/cgi-bin/health || exit 1
 
-ENTRYPOINT ["/scripts/entrypoint.sh"]
+ENTRYPOINT ["/sbin/tini", "--", "/scripts/entrypoint.sh"]

@@ -1,7 +1,7 @@
 IMAGE := ghcr.io/cameronsjo/immich-backup
 TAG := latest
 
-.PHONY: help build run test clean
+.PHONY: help build run test test-reaping clean
 
 ## Show available targets
 help:
@@ -21,6 +21,10 @@ run: ## Run container (requires .env file)
 test: ## Run shell regression tests and lint scripts
 	./tests/backup.sh
 	shellcheck scripts/*.sh tests/*.sh
+
+## Verify repeated health probes do not leave zombie CGI children
+test-reaping:
+	./tests/test-health-reaping.sh
 
 ## Remove built image
 clean: ## Remove Docker image
