@@ -18,7 +18,7 @@ restic forget \
     --tag "${BACKUP_TAG:-immich}"
 
 AFTER=$(restic snapshots --json 2>/dev/null | jq 'length')
-REMOVED=$(( BEFORE - AFTER ))
+REMOVED=$((BEFORE - AFTER))
 
 log "info" "Prune complete. Removed: $REMOVED snapshots. Remaining: $AFTER"
 

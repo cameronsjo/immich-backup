@@ -42,7 +42,7 @@ fi
 mkdir -p /data
 
 # Write crontab
-cat > /tmp/crontab <<CRON
+cat >/tmp/crontab <<CRON
 ${BACKUP_CRON} /scripts/backup.sh >> /proc/1/fd/1 2>&1
 0 3 * * 0 /scripts/prune.sh >> /proc/1/fd/1 2>&1
 CRON
@@ -52,7 +52,7 @@ log "info" "Crontab installed. Backup: ${BACKUP_CRON}. Prune: weekly Sunday 03:0
 
 # Set up health endpoint
 mkdir -p /data/cgi-bin
-cat > /data/cgi-bin/health <<'HEALTH'
+cat >/data/cgi-bin/health <<'HEALTH'
 #!/bin/sh
 LAST_BACKUP="/data/last-backup"
 if [ -f "$LAST_BACKUP" ]; then

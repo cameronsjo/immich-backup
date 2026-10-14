@@ -17,7 +17,7 @@ Encrypted backup sidecar — backs up files (and optionally a PostgreSQL dump) t
 ## Environment Variables
 
 | Variable | Required | Description |
-|----------|:--------:|-------------|
+| ---------- | :--------: | ------------- |
 | `AZURE_ACCOUNT_NAME` | Yes | Azure Storage account name |
 | `AZURE_ACCOUNT_KEY` | Yes | Azure Storage account key |
 | `RESTIC_REPOSITORY` | Yes | Restic repo URI (e.g., `azure:immich-backup:/backup`) |
